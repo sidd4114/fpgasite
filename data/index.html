@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FPGA Voltage Monitor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+    <style>
+        :root {
+            --bg-ink: #0b0f12;
+            --bg-panel: #141a1f;
+            --bg-panel-strong: #1a2229;
+            --border-soft: #26313a;
+            --text-main: #e8eef3;
+            --text-muted: #9aa7b3;
+            --accent: #00e5a8;
+            --accent-strong: #16ffc3;
+            --warn: #ff8a00;
+            --danger: #ff3b30;
+            --glow: rgba(0, 229, 168, 0.25);
+            --shadow: 0 30px 60px rgba(0, 0, 0, 0.45);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
+            background: radial-gradient(circle at top, #0f171d, var(--bg-ink));
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at 20% 20%, rgba(0, 229, 168, 0.08), transparent 45%),
+                radial-gradient(circle at 80% 10%, rgba(255, 138, 0, 0.08), transparent 40%),
+                repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.02) 1px, transparent 1px, transparent 24px),
+                repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.02) 1px, transparent 1px, transparent 24px);
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            background: linear-gradient(150deg, rgba(20, 26, 31, 0.98), rgba(12, 16, 20, 0.98));
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            border: 1px solid var(--border-soft);
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            background: linear-gradient(90deg, rgba(20, 26, 31, 0.95) 0%, rgba(24, 31, 38, 0.95) 100%);
+            border-bottom: 1px solid var(--border-soft);
+            padding: 30px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .header-title h1 {
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
+        .header-title p {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            padding: 8px 12px;
+            background: rgba(18, 24, 29, 0.8);
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .connection-indicator {
+            width: 10px;
+            height: 10px;
+            background: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 12px var(--glow);
+            animation: pulse 2s infinite;
+        }
+
+        .connection-indicator.disconnected {
+            background: var(--danger);
+            box-shadow: 0 0 8px rgba(255, 59, 48, 0.5);
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .alert-box {
+            display: none;
+            background: rgba(67, 20, 20, 0.85);
+            border: 1px solid rgba(255, 59, 48, 0.6);
+            border-left: 4px solid var(--danger);
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .alert-box.show {
+            display: block;
+        }
+
+        .alert-box i {
+            margin-right: 12px;
+            color: #ffd2cc;
+        }
+
+        .alert-content {
+            display: inline-block;
+        }
+
+        .alert-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: #ffd2cc;
+            margin-bottom: 4px;
+        }
+
+        .alert-description {
+            font-size: 13px;
+            color: #ffb6ad;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .metric-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-soft);
+            border-radius: 8px;
+            padding: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            border-color: rgba(255, 255, 255, 0.12);
+            background: var(--bg-panel-strong);
+        }
+
+        .metric-card.warning {
+            background: rgba(59, 30, 19, 0.9);
+            border-color: rgba(255, 59, 48, 0.7);
+        }
+
+        .metric-card.success {
+            background: rgba(14, 36, 31, 0.9);
+            border-color: rgba(0, 229, 168, 0.6);
+        }
+
+        .metric-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .metric-icon {
+            font-size: 16px;
+            color: var(--text-muted);
+        }
+
+        .metric-card.warning .metric-icon {
+            color: var(--danger);
+        }
+
+        .metric-card.success .metric-icon {
+            color: var(--accent);
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            font-weight: 500;
+        }
+
+        .metric-value {
+            font-size: 32px;
+            font-weight: 700;
+            margin: 8px 0;
+            font-variant-numeric: tabular-nums;
+            font-family: 'IBM Plex Mono', 'Space Grotesk', sans-serif;
+        }
+
+        .metric-unit {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .chart-section {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-soft);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 30px;
+        }
+
+        .chart-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-soft);
+        }
+
+        .chart-icon {
+            font-size: 16px;
+            color: var(--text-muted);
+        }
+
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 16px;
+        }
+
+        .stat-box {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-soft);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-box:hover {
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .stat-box-icon {
+            font-size: 18px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .stat-box-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .stat-box-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-main);
+            font-family: 'IBM Plex Mono', 'Space Grotesk', sans-serif;
+        }
+
+        .footer {
+            background: var(--bg-ink);
+            border-top: 1px solid var(--border-soft);
+            padding: 20px 40px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .main-content {
+                padding: 20px;
+            }
+
+            .header-title h1 {
+                font-size: 22px;
+            }
+
+            .chart-container {
+                height: 300px;
+            }
+
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <div>
+                    <div class="header-title">
+                        <h1><i class="fas fa-microchip"></i> FPGA Voltage Monitor</h1>
+                        <p>Real-time Solder Joint Health Monitoring</p>
+                    </div>
+                </div>
+            </div>
+            <div class="connection-status">
+                <div class="connection-indicator" id="connectionIndicator"></div>
+                <span id="connectionStatus">Connected</span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div id="alertBox" class="alert-box">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div class="alert-content">
+                    <div class="alert-title">System Failure Detected</div>
+                    <div class="alert-description">Voltage critical - FPGA solder joint failure detected</div>
+                </div>
+            </div>
+
+            <div class="metrics-grid">
+                <div id="voltageCard" class="metric-card success">
+                    <div class="metric-header">
+                        <div class="metric-icon"><i class="fas fa-bolt"></i></div>
+                        <div class="metric-label">Voltage</div>
+                    </div>
+                    <div class="metric-value" id="currentVoltage">0.00<span class="metric-unit">V</span></div>
+                </div>
+                
+                <div id="statusCard" class="metric-card success">
+                    <div class="metric-header">
+                        <div class="metric-icon"><i class="fas fa-heartbeat"></i></div>
+                        <div class="metric-label">Status</div>
+                    </div>
+                    <div class="metric-value" id="systemStatus">Healthy</div>
+                </div>
+
+                <div id="uptimeCard" class="metric-card">
+                    <div class="metric-header">
+                        <div class="metric-icon"><i class="fas fa-clock"></i></div>
+                        <div class="metric-label">Uptime</div>
+                    </div>
+                    <div class="metric-value" id="uptime">0s</div>
+                </div>
+
+                <div id="samplesCard" class="metric-card">
+                    <div class="metric-header">
+                        <div class="metric-icon"><i class="fas fa-database"></i></div>
+                        <div class="metric-label">Samples</div>
+                    </div>
+                    <div class="metric-value" id="sampleCount">0</div>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <div class="chart-header">
+                    <i class="fas fa-chart-line chart-icon"></i>
+                    <div class="chart-title">Voltage History</div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="voltageChart"></canvas>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-box-icon"><i class="fas fa-arrow-up"></i></div>
+                    <div class="stat-box-label">Maximum</div>
+                    <div class="stat-box-value" id="maxVoltage">0.00V</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-box-icon"><i class="fas fa-arrow-down"></i></div>
+                    <div class="stat-box-label">Minimum</div>
+                    <div class="stat-box-value" id="minVoltage">0.00V</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-box-icon"><i class="fas fa-chart-bar"></i></div>
+                    <div class="stat-box-label">Average</div>
+                    <div class="stat-box-value" id="avgVoltage">0.00V</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-box-icon"><i class="fas fa-sync-alt"></i></div>
+                    <div class="stat-box-label">Last Update</div>
+                    <div class="stat-box-value" id="lastUpdate">--:--:--</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            FPGA Health Monitoring System | Real-time voltage analysis enabled
+        </div>
+    </div>
+
+    <script>
+        // ===================== CONFIGURATION =====================
+        const CONFIG = {
+            API_INTERVAL: 1000,        // Fetch data every 1 second
+            MAX_DATA_POINTS: 120,      // 2 minutes at 1 Hz
+            VOLTAGE_THRESHOLD: 0.5,    // Failure threshold in volts
+            CHART_UPDATE_FREQUENCY: 2  // Update chart every N API calls
+        };
+
+        // ===================== GLOBAL STATE =====================
+        let voltageData = {
+            timestamps: [],
+            voltages: [],
+            minVoltage: 5.0,
+            maxVoltage: 0.0,
+            avgVoltage: 0.0,
+            currentVoltage: 0.0,
+            status: 'HEALTHY',
+            failed: false,
+            uptime: 0
+        };
+
+        let apiCallCount = 0;
+        let failureDetected = false;
+        let connectedToServer = false;
+
+        // ===================== CHART INITIALIZATION =====================
+        const chartCtx = document.getElementById('voltageChart').getContext('2d');
+        let voltageChart = new Chart(chartCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Voltage (V)',
+                    data: [],
+                    borderColor: '#00e5a8',
+                    backgroundColor: 'rgba(0, 229, 168, 0.10)',
+                    borderWidth: 2.5,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 8,
+                    pointBackgroundColor: '#00e5a8',
+                    pointBorderColor: '#0b0f12',
+                    pointBorderWidth: 2,
+                    spanGaps: true,
+                    segment: {
+                        borderColor: (ctx) => {
+                            return ctx.p1DataIndex !== undefined && voltageData.voltages[ctx.p1DataIndex] <= CONFIG.VOLTAGE_THRESHOLD
+                                ? '#ff3b30'
+                                : '#00e5a8';
+                        }
+                    }
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        labels: {
+                            font: { size: 13, weight: '500' },
+                            padding: 15,
+                            color: '#9aa7b3'
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                        padding: 12,
+                        titleFont: { size: 13, weight: '600' },
+                        bodyFont: { size: 12 },
+                        borderColor: '#00e5a8',
+                        borderWidth: 1,
+                        displayColors: true,
+                        callbacks: {
+                            label: function (context) {
+                                return 'Voltage: ' + context.parsed.y.toFixed(3) + ' V';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        suggestedMin: 0,
+                        suggestedMax: 3.3,
+                        title: {
+                            display: true,
+                            text: 'Voltage (V)'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.06)',
+                            drawBorder: true
+                        },
+                        ticks: {
+                            font: { size: 12 },
+                            color: '#9aa7b3'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Time (seconds)'
+                        },
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: { size: 12 },
+                            color: '#9aa7b3',
+                            maxRotation: 0
+                        }
+                    }
+                }
+            }
+        });
+
+        // ===================== API COMMUNICATION =====================
+        async function fetchVoltageData() {
+            try {
+                const response = await fetch('/data');
+                if (!response.ok) throw new Error('API response error');
+
+                const data = await response.json();
+                
+                voltageData.currentVoltage = data.voltage || 0;
+                voltageData.minVoltage = data.min || 0;
+                voltageData.maxVoltage = data.max || 0;
+                voltageData.avgVoltage = data.avg || 0;
+                voltageData.status = data.status || 'UNKNOWN';
+                voltageData.failed = data.status === 'FAILED';
+
+                // Add to chart data
+                const timestamp = new Date();
+                voltageData.timestamps.push(timestamp.toLocaleTimeString());
+                voltageData.voltages.push(voltageData.currentVoltage);
+
+                // Keep only last MAX_DATA_POINTS
+                if (voltageData.voltages.length > CONFIG.MAX_DATA_POINTS) {
+                    voltageData.voltages.shift();
+                    voltageData.timestamps.shift();
+                }
+
+                // Connection successful
+                if (!connectedToServer) {
+                    setConnectionStatus(true);
+                }
+                connectedToServer = true;
+
+                // Update UI every N API calls
+                apiCallCount++;
+                if (apiCallCount % CONFIG.CHART_UPDATE_FREQUENCY === 0) {
+                    updateUI();
+                }
+
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                if (connectedToServer) {
+                    setConnectionStatus(false);
+                }
+                connectedToServer = false;
+            }
+        }
+
+        async function fetchStatusData() {
+            try {
+                const response = await fetch('/status');
+                if (!response.ok) throw new Error('Status API error');
+
+                const data = await response.json();
+                voltageData.uptime = data.uptime || 0;
+
+            } catch (error) {
+                console.error('Error fetching status:', error);
+            }
+        }
+
+        // ===================== UI UPDATES =====================
+        function updateUI() {
+            // Update voltage display
+            document.getElementById('currentVoltage').textContent = 
+                voltageData.currentVoltage.toFixed(2) + 'V';
+            
+            document.getElementById('minVoltage').textContent = 
+                voltageData.minVoltage.toFixed(2) + 'V';
+            
+            document.getElementById('maxVoltage').textContent = 
+                voltageData.maxVoltage.toFixed(2) + 'V';
+            
+            document.getElementById('avgVoltage').textContent = 
+                voltageData.avgVoltage.toFixed(2) + 'V';
+
+            // Update system status
+            updateSystemStatus();
+
+            // Update chart
+            updateChart();
+
+            // Update additional stats
+            document.getElementById('sampleCount').textContent = voltageData.voltages.length;
+            document.getElementById('lastUpdate').textContent = 
+                new Date().toLocaleTimeString();
+            document.getElementById('uptime').textContent = 
+                formatUptime(voltageData.uptime);
+        }
+
+        function updateSystemStatus() {
+            const statusElement = document.getElementById('systemStatus');
+            const statusCard = document.getElementById('statusCard');
+            const voltageCard = document.getElementById('voltageCard');
+
+            if (voltageData.failed || voltageData.currentVoltage <= CONFIG.VOLTAGE_THRESHOLD) {
+                statusElement.textContent = 'FAILED';
+                statusCard.classList.remove('success');
+                statusCard.classList.add('warning');
+                voltageCard.classList.add('warning');
+
+                // Show alert
+                if (!failureDetected) {
+                    showAlert();
+                    failureDetected = true;
+                }
+            } else {
+                statusElement.textContent = 'Healthy';
+                statusCard.classList.remove('warning');
+                statusCard.classList.add('success');
+                voltageCard.classList.remove('warning');
+                failureDetected = false;
+                hideAlert();
+            }
+        }
+
+        function updateChart() {
+            // Generate time labels (0s, 1s, 2s, ...)
+            const timeLabels = voltageData.voltages.map((_, index) => {
+                const secondsAgo = voltageData.voltages.length - index - 1;
+                return secondsAgo + 's';
+            });
+
+            voltageChart.data.labels = timeLabels;
+            voltageChart.data.datasets[0].data = voltageData.voltages;
+            if (voltageData.voltages.length) {
+                const minValue = Math.min(...voltageData.voltages);
+                const maxValue = Math.max(...voltageData.voltages);
+                const spread = Math.max(0.02, (maxValue - minValue) * 0.2);
+
+                voltageChart.options.scales.y.min = Math.max(0, minValue - spread);
+                voltageChart.options.scales.y.max = Math.min(3.3, maxValue + spread);
+            } else {
+                voltageChart.options.scales.y.min = 0;
+                voltageChart.options.scales.y.max = 3.3;
+            }
+            voltageChart.update('none'); // Update without animation for smooth scrolling
+        }
+
+        function setConnectionStatus(connected) {
+            const indicator = document.getElementById('connectionIndicator');
+            const text = document.getElementById('connectionStatus');
+
+            if (connected) {
+                indicator.classList.remove('disconnected');
+                text.textContent = 'Connected';
+            } else {
+                indicator.classList.add('disconnected');
+                text.textContent = 'Disconnected';
+            }
+        }
+
+        function showAlert() {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.classList.add('show');
+            console.warn('System failure: Voltage critical');
+        }
+
+        function hideAlert() {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.classList.remove('show');
+        }
+
+        function formatUptime(seconds) {
+            if (seconds < 60) return seconds + 's';
+            if (seconds < 3600) return Math.floor(seconds / 60) + 'm';
+            return Math.floor(seconds / 3600) + 'h';
+        }
+
+        // ===================== INITIALIZATION =====================
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('Dashboard initialized');
+            
+            // Start polling for data
+            setInterval(fetchVoltageData, CONFIG.API_INTERVAL);
+            setInterval(fetchStatusData, 5000); // Update status every 5 seconds
+            
+            // Initial fetch
+            fetchVoltageData();
+            fetchStatusData();
+        });
+
+        // ===================== ERROR HANDLING =====================
+        window.addEventListener('error', function (event) {
+            console.error('Unhandled error:', event.error);
+        });
+    </script>
+</body>
+</html>
