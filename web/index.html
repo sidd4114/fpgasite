@@ -201,37 +201,43 @@
             color: #666;
         }
 
-        .chart-section {
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
             background: #242424;
             border: 1px solid #2a2a2a;
             border-radius: 8px;
-            padding: 24px;
-            margin-bottom: 30px;
+            padding: 20px;
         }
 
         .chart-header {
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
             border-bottom: 1px solid #2a2a2a;
         }
 
         .chart-icon {
-            font-size: 16px;
+            font-size: 14px;
             color: #666;
         }
 
         .chart-title {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 600;
-            letter-spacing: -0.3px;
+            letter-spacing: -0.2px;
         }
 
         .chart-container {
             position: relative;
-            height: 400px;
+            height: 260px;
         }
 
         .stats-grid {
@@ -298,8 +304,12 @@
                 font-size: 22px;
             }
 
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
             .chart-container {
-                height: 300px;
+                height: 240px;
             }
 
             .metrics-grid {
@@ -346,69 +356,102 @@
             </div>
 
             <div class="metrics-grid">
-                <div id="voltageCard" class="metric-card success">
+                <div class="metric-card">
                     <div class="metric-header">
-                        <div class="metric-icon"><i class="fas fa-bolt"></i></div>
-                        <div class="metric-label">Voltage</div>
+                        <div class="metric-icon"><i class="fas fa-signal"></i></div>
+                        <div class="metric-label">Channel 1</div>
                     </div>
-                    <div class="metric-value" id="currentVoltage">0.00<span class="metric-unit">V</span></div>
+                    <div class="metric-value" id="ch1Value">0.00</div>
+                    <div class="metric-unit">Latest sample</div>
                 </div>
                 
-                <div id="statusCard" class="metric-card success">
+                <div class="metric-card">
                     <div class="metric-header">
-                        <div class="metric-icon"><i class="fas fa-heartbeat"></i></div>
-                        <div class="metric-label">Status</div>
+                        <div class="metric-icon"><i class="fas fa-signal"></i></div>
+                        <div class="metric-label">Channel 2</div>
                     </div>
-                    <div class="metric-value" id="systemStatus">Healthy</div>
+                    <div class="metric-value" id="ch2Value">0.00</div>
+                    <div class="metric-unit">Latest sample</div>
                 </div>
 
-                <div id="uptimeCard" class="metric-card">
+                <div class="metric-card">
                     <div class="metric-header">
-                        <div class="metric-icon"><i class="fas fa-clock"></i></div>
-                        <div class="metric-label">Uptime</div>
+                        <div class="metric-icon"><i class="fas fa-signal"></i></div>
+                        <div class="metric-label">Channel 3</div>
                     </div>
-                    <div class="metric-value" id="uptime">0s</div>
+                    <div class="metric-value" id="ch3Value">0.00</div>
+                    <div class="metric-unit">Latest sample</div>
                 </div>
 
-                <div id="samplesCard" class="metric-card">
+                <div class="metric-card">
                     <div class="metric-header">
-                        <div class="metric-icon"><i class="fas fa-database"></i></div>
-                        <div class="metric-label">Samples</div>
+                        <div class="metric-icon"><i class="fas fa-signal"></i></div>
+                        <div class="metric-label">Channel 4</div>
                     </div>
-                    <div class="metric-value" id="sampleCount">0</div>
+                    <div class="metric-value" id="ch4Value">0.00</div>
+                    <div class="metric-unit">Latest sample</div>
                 </div>
             </div>
 
-            <div class="chart-section">
-                <div class="chart-header">
-                    <i class="fas fa-chart-line chart-icon"></i>
-                    <div class="chart-title">Voltage History</div>
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <i class="fas fa-chart-line chart-icon"></i>
+                        <div class="chart-title">Channel 1</div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chartCh1"></canvas>
+                    </div>
                 </div>
-                <div class="chart-container">
-                    <canvas id="voltageChart"></canvas>
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <i class="fas fa-chart-line chart-icon"></i>
+                        <div class="chart-title">Channel 2</div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chartCh2"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <i class="fas fa-chart-line chart-icon"></i>
+                        <div class="chart-title">Channel 3</div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chartCh3"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <i class="fas fa-chart-line chart-icon"></i>
+                        <div class="chart-title">Channel 4</div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chartCh4"></canvas>
+                    </div>
                 </div>
             </div>
 
             <div class="stats-grid">
                 <div class="stat-box">
-                    <div class="stat-box-icon"><i class="fas fa-arrow-up"></i></div>
-                    <div class="stat-box-label">Maximum</div>
-                    <div class="stat-box-value" id="maxVoltage">0.00V</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-box-icon"><i class="fas fa-arrow-down"></i></div>
-                    <div class="stat-box-label">Minimum</div>
-                    <div class="stat-box-value" id="minVoltage">0.00V</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-box-icon"><i class="fas fa-chart-bar"></i></div>
-                    <div class="stat-box-label">Average</div>
-                    <div class="stat-box-value" id="avgVoltage">0.00V</div>
+                    <div class="stat-box-icon"><i class="fas fa-database"></i></div>
+                    <div class="stat-box-label">Samples</div>
+                    <div class="stat-box-value" id="sampleCount">0</div>
                 </div>
                 <div class="stat-box">
                     <div class="stat-box-icon"><i class="fas fa-sync-alt"></i></div>
                     <div class="stat-box-label">Last Update</div>
                     <div class="stat-box-value" id="lastUpdate">--:--:--</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-box-icon"><i class="fas fa-clock"></i></div>
+                    <div class="stat-box-label">Uptime</div>
+                    <div class="stat-box-value" id="uptime">0s</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-box-icon"><i class="fas fa-bug"></i></div>
+                    <div class="stat-box-label">Parse Errors</div>
+                    <div class="stat-box-value" id="parseErrors">0</div>
                 </div>
             </div>
         </div>
@@ -421,119 +464,104 @@
     <script>
         // ===================== CONFIGURATION =====================
         const CONFIG = {
-            API_INTERVAL: 1000,        // Fetch data every 1 second
-            MAX_DATA_POINTS: 120,      // 2 minutes at 1 Hz
-            VOLTAGE_THRESHOLD: 0.5,    // Failure threshold in volts
-            CHART_UPDATE_FREQUENCY: 2  // Update chart every N API calls
+            API_INTERVAL: 250,        // Fetch data every 250 ms
+            MAX_DATA_POINTS: 240,     // Keep last N samples
+            CHART_UPDATE_FREQUENCY: 1 // Update chart every N API calls
         };
 
         // ===================== GLOBAL STATE =====================
         let voltageData = {
             timestamps: [],
-            voltages: [],
-            minVoltage: 5.0,
-            maxVoltage: 0.0,
-            avgVoltage: 0.0,
-            currentVoltage: 0.0,
-            status: 'HEALTHY',
-            failed: false,
-            uptime: 0
+            channels: [[], [], [], []],
+            latest: [0, 0, 0, 0],
+            samples: 0,
+            uptime: 0,
+            parseErrors: 0
         };
 
         let apiCallCount = 0;
-        let failureDetected = false;
         let connectedToServer = false;
 
         // ===================== CHART INITIALIZATION =====================
-        const chartCtx = document.getElementById('voltageChart').getContext('2d');
-        let voltageChart = new Chart(chartCtx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'Voltage (V)',
-                    data: [],
-                    borderColor: '#3b82f6',
-                    backgroundColor: 'rgba(59, 130, 246, 0.08)',
-                    borderWidth: 2.5,
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 0,
-                    pointHoverRadius: 8,
-                    pointBackgroundColor: '#3b82f6',
-                    pointBorderColor: '#1a1a1a',
-                    pointBorderWidth: 2,
-                    spanGaps: true,
-                    segment: {
-                        borderColor: (ctx) => {
-                            return ctx.p1DataIndex !== undefined && voltageData.voltages[ctx.p1DataIndex] <= CONFIG.VOLTAGE_THRESHOLD
-                                ? '#ef4444'
-                                : '#3b82f6';
-                        }
-                    }
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: true,
-                        labels: {
-                            font: { size: 13, weight: '500' },
-                            padding: 15,
-                            color: '#aaa'
+        const CHART_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444'];
+        const CHART_LABELS = ['Channel 1', 'Channel 2', 'Channel 3', 'Channel 4'];
+
+        function buildChart(ctx, color, label) {
+            return new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: label,
+                        data: [],
+                        borderColor: color,
+                        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.35,
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: color,
+                        pointBorderColor: '#1a1a1a',
+                        pointBorderWidth: 2,
+                        spanGaps: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                            padding: 10,
+                            titleFont: { size: 12, weight: '600' },
+                            bodyFont: { size: 11 },
+                            borderColor: color,
+                            borderWidth: 1,
+                            displayColors: false,
+                            callbacks: {
+                                label: function (context) {
+                                    return label + ': ' + context.parsed.y.toFixed(3);
+                                }
+                            }
                         }
                     },
-                    tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.9)',
-                        padding: 12,
-                        titleFont: { size: 13, weight: '600' },
-                        bodyFont: { size: 12 },
-                        borderColor: '#3b82f6',
-                        borderWidth: 1,
-                        displayColors: true,
-                        callbacks: {
-                            label: function (context) {
-                                return 'Voltage: ' + context.parsed.y.toFixed(3) + ' V';
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)',
+                                drawBorder: true
+                            },
+                            ticks: {
+                                font: { size: 11 },
+                                color: '#666'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: { size: 10 },
+                                color: '#666',
+                                maxRotation: 0
                             }
                         }
                     }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 3.3,
-                        title: {
-                            display: true,
-                            text: 'Voltage (V)'
-                        },
-                        grid: {
-                            color: 'rgba(255, 255, 255, 0.05)',
-                            drawBorder: true
-                        },
-                        ticks: {
-                            font: { size: 12 },
-                            color: '#666'
-                        }
-                    },
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Time (seconds)'
-                        },
-                        grid: {
-                            display: false
-                        },
-                        ticks: {
-                            font: { size: 12 },
-                            color: '#666',
-                            maxRotation: 0
-                        }
-                    }
                 }
-            }
-        });
+            });
+        }
+
+        const charts = [
+            buildChart(document.getElementById('chartCh1').getContext('2d'), CHART_COLORS[0], CHART_LABELS[0]),
+            buildChart(document.getElementById('chartCh2').getContext('2d'), CHART_COLORS[1], CHART_LABELS[1]),
+            buildChart(document.getElementById('chartCh3').getContext('2d'), CHART_COLORS[2], CHART_LABELS[2]),
+            buildChart(document.getElementById('chartCh4').getContext('2d'), CHART_COLORS[3], CHART_LABELS[3])
+        ];
 
         // ===================== API COMMUNICATION =====================
         async function fetchVoltageData() {
@@ -543,22 +571,23 @@
 
                 const data = await response.json();
                 
-                voltageData.currentVoltage = data.voltage || 0;
-                voltageData.minVoltage = data.min || 0;
-                voltageData.maxVoltage = data.max || 0;
-                voltageData.avgVoltage = data.avg || 0;
-                voltageData.status = data.status || 'UNKNOWN';
-                voltageData.failed = data.status === 'FAILED';
+                const values = Array.isArray(data.values) ? data.values : [0, 0, 0, 0];
+                const padded = [0, 0, 0, 0].map((_, idx) => values[idx] ?? 0);
+                voltageData.latest = padded;
+                voltageData.samples = data.samples || voltageData.samples;
+                voltageData.uptime = data.uptime || 0;
+                voltageData.parseErrors = data.parse_errors || 0;
 
-                // Add to chart data
                 const timestamp = new Date();
                 voltageData.timestamps.push(timestamp.toLocaleTimeString());
-                voltageData.voltages.push(voltageData.currentVoltage);
+                padded.forEach((value, index) => {
+                    voltageData.channels[index].push(value);
+                });
 
                 // Keep only last MAX_DATA_POINTS
-                if (voltageData.voltages.length > CONFIG.MAX_DATA_POINTS) {
-                    voltageData.voltages.shift();
+                if (voltageData.channels[0].length > CONFIG.MAX_DATA_POINTS) {
                     voltageData.timestamps.shift();
+                    voltageData.channels.forEach((series) => series.shift());
                 }
 
                 // Connection successful
@@ -582,84 +611,35 @@
             }
         }
 
-        async function fetchStatusData() {
-            try {
-                const response = await fetch('/status');
-                if (!response.ok) throw new Error('Status API error');
-
-                const data = await response.json();
-                voltageData.uptime = data.uptime || 0;
-
-            } catch (error) {
-                console.error('Error fetching status:', error);
-            }
-        }
-
         // ===================== UI UPDATES =====================
         function updateUI() {
-            // Update voltage display
-            document.getElementById('currentVoltage').textContent = 
-                voltageData.currentVoltage.toFixed(2) + 'V';
-            
-            document.getElementById('minVoltage').textContent = 
-                voltageData.minVoltage.toFixed(2) + 'V';
-            
-            document.getElementById('maxVoltage').textContent = 
-                voltageData.maxVoltage.toFixed(2) + 'V';
-            
-            document.getElementById('avgVoltage').textContent = 
-                voltageData.avgVoltage.toFixed(2) + 'V';
+            document.getElementById('ch1Value').textContent = voltageData.latest[0].toFixed(2);
+            document.getElementById('ch2Value').textContent = voltageData.latest[1].toFixed(2);
+            document.getElementById('ch3Value').textContent = voltageData.latest[2].toFixed(2);
+            document.getElementById('ch4Value').textContent = voltageData.latest[3].toFixed(2);
 
-            // Update system status
-            updateSystemStatus();
-
-            // Update chart
-            updateChart();
+            updateCharts();
 
             // Update additional stats
-            document.getElementById('sampleCount').textContent = voltageData.voltages.length;
+            document.getElementById('sampleCount').textContent = voltageData.channels[0].length;
             document.getElementById('lastUpdate').textContent = 
                 new Date().toLocaleTimeString();
             document.getElementById('uptime').textContent = 
                 formatUptime(voltageData.uptime);
+            document.getElementById('parseErrors').textContent = voltageData.parseErrors;
         }
 
-        function updateSystemStatus() {
-            const statusElement = document.getElementById('systemStatus');
-            const statusCard = document.getElementById('statusCard');
-            const voltageCard = document.getElementById('voltageCard');
-
-            if (voltageData.failed || voltageData.currentVoltage <= CONFIG.VOLTAGE_THRESHOLD) {
-                statusElement.textContent = 'FAILED';
-                statusCard.classList.remove('success');
-                statusCard.classList.add('warning');
-                voltageCard.classList.add('warning');
-
-                // Show alert
-                if (!failureDetected) {
-                    showAlert();
-                    failureDetected = true;
-                }
-            } else {
-                statusElement.textContent = 'Healthy';
-                statusCard.classList.remove('warning');
-                statusCard.classList.add('success');
-                voltageCard.classList.remove('warning');
-                failureDetected = false;
-                hideAlert();
-            }
-        }
-
-        function updateChart() {
-            // Generate time labels (0s, 1s, 2s, ...)
-            const timeLabels = voltageData.voltages.map((_, index) => {
-                const secondsAgo = voltageData.voltages.length - index - 1;
+        function updateCharts() {
+            const timeLabels = voltageData.channels[0].map((_, index) => {
+                const secondsAgo = voltageData.channels[0].length - index - 1;
                 return secondsAgo + 's';
             });
 
-            voltageChart.data.labels = timeLabels;
-            voltageChart.data.datasets[0].data = voltageData.voltages;
-            voltageChart.update('none'); // Update without animation for smooth scrolling
+            charts.forEach((chart, index) => {
+                chart.data.labels = timeLabels;
+                chart.data.datasets[0].data = voltageData.channels[index];
+                chart.update('none');
+            });
         }
 
         function setConnectionStatus(connected) {
@@ -675,17 +655,6 @@
             }
         }
 
-        function showAlert() {
-            const alertBox = document.getElementById('alertBox');
-            alertBox.classList.add('show');
-            console.warn('System failure: Voltage critical');
-        }
-
-        function hideAlert() {
-            const alertBox = document.getElementById('alertBox');
-            alertBox.classList.remove('show');
-        }
-
         function formatUptime(seconds) {
             if (seconds < 60) return seconds + 's';
             if (seconds < 3600) return Math.floor(seconds / 60) + 'm';
@@ -698,11 +667,8 @@
             
             // Start polling for data
             setInterval(fetchVoltageData, CONFIG.API_INTERVAL);
-            setInterval(fetchStatusData, 5000); // Update status every 5 seconds
-            
             // Initial fetch
             fetchVoltageData();
-            fetchStatusData();
         });
 
         // ===================== ERROR HANDLING =====================

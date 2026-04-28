@@ -1,23 +1,22 @@
 # Web Dashboard
 
-This folder contains the web interface files for the ESP32 FPGA Monitor.
+This folder contains the web interface files for the Teensy UDP dashboard.
 
 ## Files
 
-- **index.html** - The main web dashboard (upload this to SPIFFS)
+- **index.html** - The main web dashboard (served by the local Python server)
 
 ## How to Use
 
 1. Ensure `index.html` is in this folder
-2. In Arduino IDE, select: `Tools` → `ESP32 Sketch Data Upload`
-3. The dashboard will be served at: `http://192.168.1.XXX`
+2. From the project root, run: `python udp_web_server.py`
+3. Open the dashboard at: `http://localhost:8000`
 
 ## Features
 
-- Real-time voltage display
-- Live Chart.js graph
-- 2-minute history tracking
-- Failure detection alerts
+- Real-time 4-channel display
+- Live Chart.js graphs
+- Rolling history tracking
 - Mobile-responsive design
 - Professional UI with animations
 
@@ -26,7 +25,6 @@ This folder contains the web interface files for the ESP32 FPGA Monitor.
 The dashboard JavaScript in `index.html` includes:
 - API endpoint configuration
 - Chart update frequency
-- Voltage threshold for alerts
 - UI styling and animations
 
 You can modify the JavaScript section to customize:
