@@ -1,680 +1,432 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FPGA Voltage Monitor</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FPGA Voltage Monitor</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --c0:#22d3ee; --c1:#a3e635; --c2:#f97316; --c3:#e879f9;
+  --bg:#06090d; --panel:#0c1219; --panel2:#101a23;
+  --rim:rgba(255,255,255,0.06); --text:#cde4f0; --muted:#3d5a6e; --dim:#142030;
+  --mono:'DM Mono',monospace; --head:'Oxanium',sans-serif;
+}
+body{
+  font-family:var(--mono);background:var(--bg);color:var(--text);
+  min-height:100vh;padding:14px 18px;
+  background-image:linear-gradient(rgba(34,211,238,.02) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(34,211,238,.02) 1px,transparent 1px);
+  background-size:28px 28px;
+}
+.shell{max-width:1600px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background: #0f0f0f;
-            color: #e0e0e0;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
+/* ── TOPBAR ── */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 20px;background:var(--panel);
+  border:1px solid var(--rim);border-top:2px solid var(--c0);border-radius:6px;
+}
+.topbar-title{font-family:var(--head);font-size:15px;font-weight:700;letter-spacing:.18em;text-transform:uppercase}
+.topbar-sub{font-size:10px;color:var(--muted);margin-top:3px}
+.pill{display:flex;align-items:center;gap:7px;padding:5px 13px;background:var(--panel2);
+  border:1px solid var(--rim);border-radius:99px;font-size:11px;color:var(--muted)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--c1);
+  box-shadow:0 0 8px rgba(163,230,53,.6);transition:all .4s}
+.dot.off{background:#f87171;box-shadow:0 0 8px rgba(248,113,113,.5)}
 
-        .container {
-            width: 100%;
-            max-width: 1400px;
-            background: #1a1a1a;
-            border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
-            overflow: hidden;
-            border: 1px solid #2a2a2a;
-        }
+/* ── SECTION LABEL ── */
+.sec-label{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);padding:0 2px}
 
-        .header {
-            background: linear-gradient(90deg, #1a1a1a 0%, #242424 100%);
-            border-bottom: 1px solid #2a2a2a;
-            padding: 30px 40px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
+/* ══════════════════════════════════════════════════════
+   FREQUENCY STRIP — 4 compact tiles, one row
+   ══════════════════════════════════════════════════════ */
+.freq-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
+.freq-tile{
+  background:var(--panel);border:1px solid var(--rim);border-radius:6px;
+  padding:12px 16px;position:relative;overflow:hidden;
+}
+/* colored left bar per channel */
+.freq-tile::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px}
+.freq-tile:nth-child(1)::before{background:var(--c0)}
+.freq-tile:nth-child(2)::before{background:var(--c1)}
+.freq-tile:nth-child(3)::before{background:var(--c2)}
+.freq-tile:nth-child(4)::before{background:var(--c3)}
 
-        .header-title h1 {
-            font-size: 28px;
-            font-weight: 600;
-            letter-spacing: -0.5px;
-        }
+.ft-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ft-name{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.ft-meta{display:flex;gap:5px;align-items:center}
+.ft-pin{font-size:9px;color:var(--dim);background:var(--panel2);
+  border:1px solid var(--rim);padding:1px 6px;border-radius:3px}
+.ft-type{font-size:8px;letter-spacing:.1em;text-transform:uppercase;
+  padding:1px 6px;border-radius:3px;border:1px solid}
 
-        .header-title p {
-            font-size: 13px;
-            color: #888;
-            margin-top: 4px;
-        }
+/* The frequency value itself */
+.ft-val{display:flex;align-items:baseline;gap:5px}
+.ft-num{
+  font-family:var(--head);font-size:30px;font-weight:800;
+  font-variant-numeric:tabular-nums;line-height:1;
+  transition:color .25s;
+}
+.ft-unit{font-family:var(--head);font-size:13px;color:var(--muted)}
+.ft-sub{font-size:9px;color:var(--muted);margin-top:5px}
 
-        .connection-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            padding: 8px 12px;
-            background: #2a2a2a;
-            border-radius: 6px;
-        }
+/* Flash on freq change */
+@keyframes fflash{0%{opacity:.2}50%{opacity:1;filter:brightness(2)}100%{filter:brightness(1)}}
+.ft-num.flash{animation:fflash .4s ease forwards}
 
-        .connection-indicator {
-            width: 10px;
-            height: 10px;
-            background: #22c55e;
-            border-radius: 50%;
-            box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
-            animation: pulse 2s infinite;
-        }
+/* ══════════════════════════════════════════════════════
+   WAVEFORM GRAPHS — 2×2 grid, tall cards
+   ══════════════════════════════════════════════════════ */
+.wave-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
-        .connection-indicator.disconnected {
-            background: #ef4444;
-            box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
-            animation: none;
-        }
+.wave-card{background:var(--panel);border:1px solid var(--rim);border-radius:6px;overflow:hidden}
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
+.wave-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px;background:var(--panel2);border-bottom:1px solid var(--rim);
+}
+.wh-left{display:flex;align-items:center;gap:8px}
+.wh-pip{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.wh-name{font-size:10px;letter-spacing:.1em;text-transform:uppercase}
+.wh-pin{font-size:9px;color:var(--muted);background:var(--panel);
+  border:1px solid var(--rim);padding:1px 6px;border-radius:3px}
+.wh-type{font-size:8px;text-transform:uppercase;letter-spacing:.1em;
+  padding:2px 7px;border-radius:3px;border:1px solid}
 
-        .main-content {
-            padding: 40px;
-        }
+/* Frequency badge in chart header — mirrors freq strip but compact */
+.wh-freq{
+  font-family:var(--head);font-size:13px;font-weight:700;
+  font-variant-numeric:tabular-nums;
+  padding:3px 10px;border-radius:4px;border:1px solid;
+  min-width:85px;text-align:right;
+  transition:all .25s;
+}
 
-        .alert-box {
-            display: none;
-            background: #7f1d1d;
-            border: 1px solid #dc2626;
-            border-left: 4px solid #dc2626;
-            padding: 16px 20px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-            animation: slideIn 0.3s ease-out;
-        }
+.wave-body{padding:10px 14px 12px;height:170px;position:relative}
 
-        .alert-box.show {
-            display: block;
-        }
+/* ── STATS BAR ── */
+.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.stat{background:var(--panel);border:1px solid var(--rim);border-radius:6px;
+  padding:10px 14px;display:flex;align-items:center;gap:10px}
+.stat-ico{font-size:12px;color:var(--muted)}
+.stat-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+.stat-val{font-family:var(--head);font-size:17px;font-weight:700;margin-top:1px}
 
-        .alert-box i {
-            margin-right: 12px;
-            color: #fca5a5;
-        }
+.footer{text-align:center;font-size:9px;color:var(--dim);letter-spacing:.12em;text-transform:uppercase}
 
-        .alert-content {
-            display: inline-block;
-        }
-
-        .alert-title {
-            font-weight: 600;
-            font-size: 14px;
-            color: #fca5a5;
-            margin-bottom: 4px;
-        }
-
-        .alert-description {
-            font-size: 13px;
-            color: #f87171;
-        }
-
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .metric-card {
-            background: #242424;
-            border: 1px solid #2a2a2a;
-            border-radius: 8px;
-            padding: 24px;
-            transition: all 0.3s ease;
-        }
-
-        .metric-card:hover {
-            border-color: #3a3a3a;
-            background: #2a2a2a;
-        }
-
-        .metric-card.warning {
-            background: #3f2019;
-            border-color: #dc2626;
-        }
-
-        .metric-card.success {
-            background: #1f2937;
-            border-color: #22c55e;
-        }
-
-        .metric-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 12px;
-        }
-
-        .metric-icon {
-            font-size: 16px;
-            color: #888;
-        }
-
-        .metric-card.warning .metric-icon {
-            color: #dc2626;
-        }
-
-        .metric-card.success .metric-icon {
-            color: #22c55e;
-        }
-
-        .metric-label {
-            font-size: 12px;
-            color: #888;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            font-weight: 500;
-        }
-
-        .metric-value {
-            font-size: 32px;
-            font-weight: 700;
-            margin: 8px 0;
-            font-variant-numeric: tabular-nums;
-        }
-
-        .metric-unit {
-            font-size: 12px;
-            color: #666;
-        }
-
-        .charts-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .chart-card {
-            background: #242424;
-            border: 1px solid #2a2a2a;
-            border-radius: 8px;
-            padding: 20px;
-        }
-
-        .chart-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid #2a2a2a;
-        }
-
-        .chart-icon {
-            font-size: 14px;
-            color: #666;
-        }
-
-        .chart-title {
-            font-size: 14px;
-            font-weight: 600;
-            letter-spacing: -0.2px;
-        }
-
-        .chart-container {
-            position: relative;
-            height: 260px;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 16px;
-        }
-
-        .stat-box {
-            background: #242424;
-            border: 1px solid #2a2a2a;
-            border-radius: 8px;
-            padding: 16px;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-
-        .stat-box:hover {
-            border-color: #3a3a3a;
-        }
-
-        .stat-box-icon {
-            font-size: 18px;
-            color: #666;
-            margin-bottom: 8px;
-        }
-
-        .stat-box-label {
-            font-size: 11px;
-            color: #888;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 6px;
-            font-weight: 500;
-        }
-
-        .stat-box-value {
-            font-size: 18px;
-            font-weight: 700;
-            color: #e0e0e0;
-        }
-
-        .footer {
-            background: #0f0f0f;
-            border-top: 1px solid #2a2a2a;
-            padding: 20px 40px;
-            text-align: center;
-            color: #666;
-            font-size: 12px;
-        }
-
-        @media (max-width: 768px) {
-            .header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 15px;
-            }
-
-            .main-content {
-                padding: 20px;
-            }
-
-            .header-title h1 {
-                font-size: 22px;
-            }
-
-            .charts-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .chart-container {
-                height: 240px;
-            }
-
-            .metrics-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-    </style>
+@media(max-width:960px){.wave-grid,.freq-strip{grid-template-columns:1fr 1fr}.stats-bar{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:540px){.wave-grid,.freq-strip,.stats-bar{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <div class="header-left">
-                <div>
-                    <div class="header-title">
-                        <h1><i class="fas fa-microchip"></i> FPGA Voltage Monitor</h1>
-                        <p>Real-time Solder Joint Health Monitoring</p>
-                    </div>
-                </div>
-            </div>
-            <div class="connection-status">
-                <div class="connection-indicator" id="connectionIndicator"></div>
-                <span id="connectionStatus">Connected</span>
-            </div>
+<div class="shell">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">⬡ FPGA Voltage Monitor</div>
+      <div class="topbar-sub">Interrupt-based frequency · analog rising-edge count · square wave display</div>
+    </div>
+    <div class="pill"><div class="dot" id="connDot"></div><span id="connTxt">Connecting…</span></div>
+  </div>
+
+  <!-- ════════════════════════════════════════════
+       FREQUENCY SECTION
+       ════════════════════════════════════════════ -->
+  <div class="sec-label">▸ Measured Frequency</div>
+  <div class="freq-strip">
+
+    <div class="freq-tile">
+      <div class="ft-top">
+        <span class="ft-name">Ch 1 · wave_out</span>
+        <div class="ft-meta">
+          <span class="ft-pin">pin 22</span>
+          <span class="ft-type" style="color:var(--c0);border-color:rgba(34,211,238,.3)">analog</span>
         </div>
-
-        <div class="main-content">
-            <div id="alertBox" class="alert-box">
-                <i class="fas fa-exclamation-triangle"></i>
-                <div class="alert-content">
-                    <div class="alert-title">System Failure Detected</div>
-                    <div class="alert-description">Voltage critical - FPGA solder joint failure detected</div>
-                </div>
-            </div>
-
-            <div class="metrics-grid">
-                <div class="metric-card">
-                    <div class="metric-header">
-                        <div class="metric-icon"><i class="fas fa-signal"></i></div>
-                        <div class="metric-label">Channel 1</div>
-                    </div>
-                    <div class="metric-value" id="ch1Value">0.00</div>
-                    <div class="metric-unit">Latest sample</div>
-                </div>
-                
-                <div class="metric-card">
-                    <div class="metric-header">
-                        <div class="metric-icon"><i class="fas fa-signal"></i></div>
-                        <div class="metric-label">Channel 2</div>
-                    </div>
-                    <div class="metric-value" id="ch2Value">0.00</div>
-                    <div class="metric-unit">Latest sample</div>
-                </div>
-
-                <div class="metric-card">
-                    <div class="metric-header">
-                        <div class="metric-icon"><i class="fas fa-signal"></i></div>
-                        <div class="metric-label">Channel 3</div>
-                    </div>
-                    <div class="metric-value" id="ch3Value">0.00</div>
-                    <div class="metric-unit">Latest sample</div>
-                </div>
-
-                <div class="metric-card">
-                    <div class="metric-header">
-                        <div class="metric-icon"><i class="fas fa-signal"></i></div>
-                        <div class="metric-label">Channel 4</div>
-                    </div>
-                    <div class="metric-value" id="ch4Value">0.00</div>
-                    <div class="metric-unit">Latest sample</div>
-                </div>
-            </div>
-
-            <div class="charts-grid">
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <i class="fas fa-chart-line chart-icon"></i>
-                        <div class="chart-title">Channel 1</div>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="chartCh1"></canvas>
-                    </div>
-                </div>
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <i class="fas fa-chart-line chart-icon"></i>
-                        <div class="chart-title">Channel 2</div>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="chartCh2"></canvas>
-                    </div>
-                </div>
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <i class="fas fa-chart-line chart-icon"></i>
-                        <div class="chart-title">Channel 3</div>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="chartCh3"></canvas>
-                    </div>
-                </div>
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <i class="fas fa-chart-line chart-icon"></i>
-                        <div class="chart-title">Channel 4</div>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="chartCh4"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <div class="stats-grid">
-                <div class="stat-box">
-                    <div class="stat-box-icon"><i class="fas fa-database"></i></div>
-                    <div class="stat-box-label">Samples</div>
-                    <div class="stat-box-value" id="sampleCount">0</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-box-icon"><i class="fas fa-sync-alt"></i></div>
-                    <div class="stat-box-label">Last Update</div>
-                    <div class="stat-box-value" id="lastUpdate">--:--:--</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-box-icon"><i class="fas fa-clock"></i></div>
-                    <div class="stat-box-label">Uptime</div>
-                    <div class="stat-box-value" id="uptime">0s</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-box-icon"><i class="fas fa-bug"></i></div>
-                    <div class="stat-box-label">Parse Errors</div>
-                    <div class="stat-box-value" id="parseErrors">0</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="footer">
-            FPGA Health Monitoring System | Real-time voltage analysis enabled
-        </div>
+      </div>
+      <div class="ft-val">
+        <span class="ft-num" id="fn0" style="color:var(--c0)">—</span>
+        <span class="ft-unit" id="fnu0" style="color:var(--c0)"></span>
+      </div>
+      <div class="ft-sub" id="fsub0">rising-edge count · no signal</div>
     </div>
 
-    <script>
-        // ===================== CONFIGURATION =====================
-        const CONFIG = {
-            API_INTERVAL: 250,        // Fetch data every 250 ms
-            MAX_DATA_POINTS: 240,     // Keep last N samples
-            CHART_UPDATE_FREQUENCY: 1 // Update chart every N API calls
-        };
+    <div class="freq-tile">
+      <div class="ft-top">
+        <span class="ft-name">Ch 2 · wave_100k</span>
+        <div class="ft-meta">
+          <span class="ft-pin">pin 25</span>
+          <span class="ft-type" style="color:var(--c1);border-color:rgba(163,230,53,.3)">analog</span>
+        </div>
+      </div>
+      <div class="ft-val">
+        <span class="ft-num" id="fn1" style="color:var(--c1)">—</span>
+        <span class="ft-unit" id="fnu1" style="color:var(--c1)"></span>
+      </div>
+      <div class="ft-sub" id="fsub1">rising-edge count · no signal</div>
+    </div>
 
-        // ===================== GLOBAL STATE =====================
-        let voltageData = {
-            timestamps: [],
-            channels: [[], [], [], []],
-            latest: [0, 0, 0, 0],
-            samples: 0,
-            uptime: 0,
-            parseErrors: 0
-        };
+    <div class="freq-tile">
+      <div class="ft-top">
+        <span class="ft-name">Ch 3 · wave_500k</span>
+        <div class="ft-meta">
+          <span class="ft-pin">pin 24</span>
+          <span class="ft-type" style="color:var(--c2);border-color:rgba(249,115,22,.3)">digital</span>
+        </div>
+      </div>
+      <div class="ft-val">
+        <span class="ft-num" id="fn2" style="color:var(--c2)">—</span>
+        <span class="ft-unit" id="fnu2" style="color:var(--c2)"></span>
+      </div>
+      <div class="ft-sub" id="fsub2">hw interrupt · no signal</div>
+    </div>
 
-        let apiCallCount = 0;
-        let connectedToServer = false;
+    <div class="freq-tile">
+      <div class="ft-top">
+        <span class="ft-name">Ch 4 · wave_1M</span>
+        <div class="ft-meta">
+          <span class="ft-pin">pin 23</span>
+          <span class="ft-type" style="color:var(--c3);border-color:rgba(232,121,249,.3)">digital</span>
+        </div>
+      </div>
+      <div class="ft-val">
+        <span class="ft-num" id="fn3" style="color:var(--c3)">—</span>
+        <span class="ft-unit" id="fnu3" style="color:var(--c3)"></span>
+      </div>
+      <div class="ft-sub" id="fsub3">hw interrupt · no signal</div>
+    </div>
 
-        // ===================== CHART INITIALIZATION =====================
-        const CHART_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444'];
-        const CHART_LABELS = ['Channel 1', 'Channel 2', 'Channel 3', 'Channel 4'];
+  </div>
 
-        function buildChart(ctx, color, label) {
-            return new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        label: label,
-                        data: [],
-                        borderColor: color,
-                        backgroundColor: 'rgba(255, 255, 255, 0.03)',
-                        borderWidth: 2,
-                        fill: false,
-                        tension: 0.35,
-                        pointRadius: 0,
-                        pointHoverRadius: 6,
-                        pointBackgroundColor: color,
-                        pointBorderColor: '#1a1a1a',
-                        pointBorderWidth: 2,
-                        spanGaps: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.9)',
-                            padding: 10,
-                            titleFont: { size: 12, weight: '600' },
-                            bodyFont: { size: 11 },
-                            borderColor: color,
-                            borderWidth: 1,
-                            displayColors: false,
-                            callbacks: {
-                                label: function (context) {
-                                    return label + ': ' + context.parsed.y.toFixed(3);
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.05)',
-                                drawBorder: true
-                            },
-                            ticks: {
-                                font: { size: 11 },
-                                color: '#666'
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            },
-                            ticks: {
-                                font: { size: 10 },
-                                color: '#666',
-                                maxRotation: 0
-                            }
-                        }
-                    }
-                }
-            });
+  <!-- ════════════════════════════════════════════
+       WAVEFORM SECTION
+       ════════════════════════════════════════════ -->
+  <div class="sec-label">▸ Waveform Display</div>
+  <div class="wave-grid">
+
+    <div class="wave-card">
+      <div class="wave-header">
+        <div class="wh-left">
+          <div class="wh-pip" style="background:var(--c0)"></div>
+          <span class="wh-name" style="color:var(--c0)">Ch 1 — wave_out</span>
+          <span class="wh-pin">pin 22</span>
+          <span class="wh-type" style="color:var(--c0);border-color:rgba(34,211,238,.25)">analog</span>
+        </div>
+        <div class="wh-freq" id="wf0" style="color:var(--c0);border-color:rgba(34,211,238,.25);background:rgba(34,211,238,.07)">—</div>
+      </div>
+      <div class="wave-body"><canvas id="c0"></canvas></div>
+    </div>
+
+    <div class="wave-card">
+      <div class="wave-header">
+        <div class="wh-left">
+          <div class="wh-pip" style="background:var(--c1)"></div>
+          <span class="wh-name" style="color:var(--c1)">Ch 2 — wave_100k</span>
+          <span class="wh-pin">pin 25</span>
+          <span class="wh-type" style="color:var(--c1);border-color:rgba(163,230,53,.25)">analog</span>
+        </div>
+        <div class="wh-freq" id="wf1" style="color:var(--c1);border-color:rgba(163,230,53,.25);background:rgba(163,230,53,.07)">—</div>
+      </div>
+      <div class="wave-body"><canvas id="c1"></canvas></div>
+    </div>
+
+    <div class="wave-card">
+      <div class="wave-header">
+        <div class="wh-left">
+          <div class="wh-pip" style="background:var(--c2)"></div>
+          <span class="wh-name" style="color:var(--c2)">Ch 3 — wave_500k</span>
+          <span class="wh-pin">pin 24</span>
+          <span class="wh-type" style="color:var(--c2);border-color:rgba(249,115,22,.25)">digital</span>
+        </div>
+        <div class="wh-freq" id="wf2" style="color:var(--c2);border-color:rgba(249,115,22,.25);background:rgba(249,115,22,.07)">—</div>
+      </div>
+      <div class="wave-body"><canvas id="c2"></canvas></div>
+    </div>
+
+    <div class="wave-card">
+      <div class="wave-header">
+        <div class="wh-left">
+          <div class="wh-pip" style="background:var(--c3)"></div>
+          <span class="wh-name" style="color:var(--c3)">Ch 4 — wave_1M</span>
+          <span class="wh-pin">pin 23</span>
+          <span class="wh-type" style="color:var(--c3);border-color:rgba(232,121,249,.25)">digital</span>
+        </div>
+        <div class="wh-freq" id="wf3" style="color:var(--c3);border-color:rgba(232,121,249,.25);background:rgba(232,121,249,.07)">—</div>
+      </div>
+      <div class="wave-body"><canvas id="c3"></canvas></div>
+    </div>
+
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-bar">
+    <div class="stat"><span class="stat-ico">⬡</span><div><div class="stat-lbl">Total Packets</div><div class="stat-val" id="sPkts">0</div></div></div>
+    <div class="stat"><span class="stat-ico">↻</span><div><div class="stat-lbl">Last Update</div><div class="stat-val" id="sLast">--:--:--</div></div></div>
+    <div class="stat"><span class="stat-ico">◷</span><div><div class="stat-lbl">Uptime</div><div class="stat-val" id="sUp">0s</div></div></div>
+    <div class="stat"><span class="stat-ico">⚠</span><div><div class="stat-lbl">Parse Errors</div><div class="stat-val" id="sErr">0</div></div></div>
+  </div>
+
+  <div class="footer">FPGA Health Monitor · pins 22 25 24 23 · interrupt + rising-edge frequency measurement</div>
+</div>
+
+<script>
+const COLORS     = ['#22d3ee','#a3e635','#f97316','#e879f9'];
+const IS_DIGITAL = [false, false, true, true];
+const MAX_PTS    = 200;
+const POLL_MS    = 100;
+
+let connected = null;
+let prevFreq  = [null,null,null,null];
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function fmtNum(hz){
+  if(!hz||hz<=0) return '—';
+  if(hz>=1e6) return (hz/1e6).toFixed(3);
+  if(hz>=1e3) return (hz/1e3).toFixed(2);
+  return Math.round(hz).toString();
+}
+function fmtUnit(hz){
+  if(!hz||hz<=0) return '';
+  if(hz>=1e6) return 'MHz';
+  if(hz>=1e3) return 'kHz';
+  return 'Hz';
+}
+function fmtFull(hz){
+  if(!hz||hz<=0) return 'no signal';
+  if(hz>=1e6) return (hz/1e6).toFixed(3)+' MHz';
+  if(hz>=1e3) return (hz/1e3).toFixed(2)+' kHz';
+  return Math.round(hz)+' Hz';
+}
+function fmtUp(s){
+  if(s<60) return s+'s';
+  if(s<3600) return Math.floor(s/60)+'m '+(s%60)+'s';
+  return Math.floor(s/3600)+'h '+Math.floor((s%3600)/60)+'m';
+}
+
+// ── Chart factory ──────────────────────────────────────────────────────────
+function buildChart(id, color, isDigital){
+  return new Chart(document.getElementById(id).getContext('2d'),{
+    type:'line',
+    data:{labels:[],datasets:[{
+      data:[],borderColor:color,backgroundColor:'transparent',
+      borderWidth:isDigital?1.5:1.2,tension:0,pointRadius:0,fill:false,spanGaps:true
+    }]},
+    options:{
+      responsive:true,maintainAspectRatio:false,animation:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          enabled:true,
+          backgroundColor:'rgba(4,9,16,.96)',borderColor:color,borderWidth:1,
+          padding:9,displayColors:false,
+          callbacks:{label:ctx=>{
+            const v=ctx.parsed.y;
+            if(isDigital) return v>2048?'HIGH  (3.3V)':'LOW   (0V)';
+            return 'ADC: '+Math.round(v)+'  ≈ '+(v/4095*3.3).toFixed(2)+'V';
+          }}
         }
-
-        const charts = [
-            buildChart(document.getElementById('chartCh1').getContext('2d'), CHART_COLORS[0], CHART_LABELS[0]),
-            buildChart(document.getElementById('chartCh2').getContext('2d'), CHART_COLORS[1], CHART_LABELS[1]),
-            buildChart(document.getElementById('chartCh3').getContext('2d'), CHART_COLORS[2], CHART_LABELS[2]),
-            buildChart(document.getElementById('chartCh4').getContext('2d'), CHART_COLORS[3], CHART_LABELS[3])
-        ];
-
-        // ===================== API COMMUNICATION =====================
-        async function fetchVoltageData() {
-            try {
-                const response = await fetch('/data');
-                if (!response.ok) throw new Error('API response error');
-
-                const data = await response.json();
-                
-                const values = Array.isArray(data.values) ? data.values : [0, 0, 0, 0];
-                const padded = [0, 0, 0, 0].map((_, idx) => values[idx] ?? 0);
-                voltageData.latest = padded;
-                voltageData.samples = data.samples || voltageData.samples;
-                voltageData.uptime = data.uptime || 0;
-                voltageData.parseErrors = data.parse_errors || 0;
-
-                const timestamp = new Date();
-                voltageData.timestamps.push(timestamp.toLocaleTimeString());
-                padded.forEach((value, index) => {
-                    voltageData.channels[index].push(value);
-                });
-
-                // Keep only last MAX_DATA_POINTS
-                if (voltageData.channels[0].length > CONFIG.MAX_DATA_POINTS) {
-                    voltageData.timestamps.shift();
-                    voltageData.channels.forEach((series) => series.shift());
-                }
-
-                // Connection successful
-                if (!connectedToServer) {
-                    setConnectionStatus(true);
-                }
-                connectedToServer = true;
-
-                // Update UI every N API calls
-                apiCallCount++;
-                if (apiCallCount % CONFIG.CHART_UPDATE_FREQUENCY === 0) {
-                    updateUI();
-                }
-
-            } catch (error) {
-                console.error('Error fetching data:', error);
-                if (connectedToServer) {
-                    setConnectionStatus(false);
-                }
-                connectedToServer = false;
+      },
+      scales:{
+        y:{
+          min:isDigital?-300:-150, max:isDigital?4395:4295,
+          grid:{color:'rgba(255,255,255,.035)'},
+          ticks:{
+            font:{size:9,family:'DM Mono'},color:'#142030',maxTicksLimit:3,
+            callback:v=>{
+              if(isDigital){
+                if(v<-100) return 'LOW';
+                if(v>4100) return 'HIGH';
+                return '';
+              }
+              if(v<50)              return '0V';
+              if(Math.abs(v-2048)<150) return '1.65V';
+              if(v>4000)            return '3.3V';
+              return '';
             }
-        }
+          }
+        },
+        x:{display:false}
+      }
+    }
+  });
+}
 
-        // ===================== UI UPDATES =====================
-        function updateUI() {
-            document.getElementById('ch1Value').textContent = voltageData.latest[0].toFixed(2);
-            document.getElementById('ch2Value').textContent = voltageData.latest[1].toFixed(2);
-            document.getElementById('ch3Value').textContent = voltageData.latest[2].toFixed(2);
-            document.getElementById('ch4Value').textContent = voltageData.latest[3].toFixed(2);
+const charts=[
+  buildChart('c0',COLORS[0],false),
+  buildChart('c1',COLORS[1],false),
+  buildChart('c2',COLORS[2],true),
+  buildChart('c3',COLORS[3],true),
+];
 
-            updateCharts();
+// ── Poll ───────────────────────────────────────────────────────────────────
+async function poll(){
+  try{
+    const res  = await fetch('/data');
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data = await res.json();
 
-            // Update additional stats
-            document.getElementById('sampleCount').textContent = voltageData.channels[0].length;
-            document.getElementById('lastUpdate').textContent = 
-                new Date().toLocaleTimeString();
-            document.getElementById('uptime').textContent = 
-                formatUptime(voltageData.uptime);
-            document.getElementById('parseErrors').textContent = voltageData.parseErrors;
-        }
+    const chs   = data.channels || [[],[],[],[]];
+    const freqs = data.freq_hz  || [null,null,null,null];
 
-        function updateCharts() {
-            const timeLabels = voltageData.channels[0].map((_, index) => {
-                const secondsAgo = voltageData.channels[0].length - index - 1;
-                return secondsAgo + 's';
-            });
+    // Update waveform charts
+    chs.forEach((ch,i)=>{
+      const slice=ch.slice(-MAX_PTS);
+      charts[i].data.labels=slice.map((_,j)=>j);
+      charts[i].data.datasets[0].data=slice;
+      charts[i].update('none');
+    });
 
-            charts.forEach((chart, index) => {
-                chart.data.labels = timeLabels;
-                chart.data.datasets[0].data = voltageData.channels[index];
-                chart.update('none');
-            });
-        }
+    // Update frequency displays
+    freqs.forEach((hz,i)=>{
+      const numEl  = document.getElementById('fn'+i);
+      const unitEl = document.getElementById('fnu'+i);
+      const subEl  = document.getElementById('fsub'+i);
+      const wfEl   = document.getElementById('wf'+i);
 
-        function setConnectionStatus(connected) {
-            const indicator = document.getElementById('connectionIndicator');
-            const text = document.getElementById('connectionStatus');
+      const hasSignal = hz!==null && hz>0;
+      const num  = fmtNum(hz);
+      const unit = fmtUnit(hz);
+      const full = fmtFull(hz);
+      const method = IS_DIGITAL[i] ? 'hw interrupt' : 'rising-edge count';
 
-            if (connected) {
-                indicator.classList.remove('disconnected');
-                text.textContent = 'Connected';
-            } else {
-                indicator.classList.add('disconnected');
-                text.textContent = 'Disconnected';
-            }
-        }
+      // Flash big number if freq changed >5%
+      if(prevFreq[i]!==null && hz!==null && hz>0 &&
+         Math.abs(hz-prevFreq[i])/(prevFreq[i]||1) > 0.05){
+        numEl.classList.remove('flash');
+        void numEl.offsetWidth;
+        numEl.classList.add('flash');
+      }
+      prevFreq[i]=hz;
 
-        function formatUptime(seconds) {
-            if (seconds < 60) return seconds + 's';
-            if (seconds < 3600) return Math.floor(seconds / 60) + 'm';
-            return Math.floor(seconds / 3600) + 'h';
-        }
+      numEl.textContent  = num;
+      unitEl.textContent = unit;
+      subEl.textContent  = method + ' · ' + (hasSignal ? full : 'no signal');
 
-        // ===================== INITIALIZATION =====================
-        document.addEventListener('DOMContentLoaded', function () {
-            console.log('Dashboard initialized');
-            
-            // Start polling for data
-            setInterval(fetchVoltageData, CONFIG.API_INTERVAL);
-            // Initial fetch
-            fetchVoltageData();
-        });
+      // Waveform chart freq badge
+      wfEl.textContent = hasSignal ? full : 'no signal';
+    });
 
-        // ===================== ERROR HANDLING =====================
-        window.addEventListener('error', function (event) {
-            console.error('Unhandled error:', event.error);
-        });
-    </script>
+    document.getElementById('sPkts').textContent=(data.samples||0).toLocaleString();
+    document.getElementById('sLast').textContent=new Date().toLocaleTimeString();
+    document.getElementById('sUp').textContent=fmtUp(data.uptime||0);
+    document.getElementById('sErr').textContent=data.parse_errors||0;
+
+    setConn(data.connected!==false);
+  }catch(e){console.error(e);setConn(false);}
+}
+
+function setConn(ok){
+  if(connected===ok)return;connected=ok;
+  document.getElementById('connDot').classList.toggle('off',!ok);
+  document.getElementById('connTxt').textContent=ok?'Connected':'Disconnected';
+}
+
+setInterval(poll,POLL_MS);
+poll();
+</script>
 </body>
 </html>
