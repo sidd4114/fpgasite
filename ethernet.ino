@@ -26,10 +26,10 @@ static const IPAddress GATEWAY  (192, 168, 2, 1);
 static const uint16_t  UDP_PORT = 5000;
 
 // ── Pin definitions (teammate's exact pins) ────────────────────────────────
-const int ANALOG_PIN_1  = 22;   // A8  — variable freq
-const int ANALOG_PIN_2  = 25;   // A11 — ~50 kHz
-const int DIGITAL_PIN_1 = 24;   // ~100 kHz — hardware interrupt
-const int DIGITAL_PIN_2 = 23;   // ~500 kHz — hardware interrupt
+const int ANALOG_PIN_1  = 23;   // A8  — variable freq
+const int ANALOG_PIN_2  = 22;   // A11 — ~50 kHz
+const int DIGITAL_PIN_1 = 25;   // ~100 kHz — hardware interrupt
+const int DIGITAL_PIN_2 = 24;   // ~500 kHz — hardware interrupt
 
 // ── Frequency measurement ──────────────────────────────────────────────────
 const int     THRESHOLD    = 2048;   // 12-bit midpoint (1.65V)
