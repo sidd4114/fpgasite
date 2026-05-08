@@ -36,6 +36,30 @@ body{
 .dot{width:7px;height:7px;border-radius:50%;background:var(--c1);
   box-shadow:0 0 8px rgba(163,230,53,.6);transition:all .4s}
 .dot.off{background:#f87171;box-shadow:0 0 8px rgba(248,113,113,.5)}
+/* ── FAULT BANNER ── */
+.fault-banner{
+  display:none;align-items:center;gap:12px;
+  padding:11px 18px;
+  background:rgba(239,68,68,.12);
+  border:1px solid rgba(239,68,68,.35);
+  border-left:3px solid #ef4444;
+  border-radius:6px;
+  font-size:12px;color:#fca5a5;
+  animation:pulse-border 1s ease infinite alternate;
+}
+.fault-banner.show{display:flex}
+.fault-banner-icon{font-size:16px}
+@keyframes pulse-border{0%{border-color:rgba(239,68,68,.35)}100%{border-color:rgba(239,68,68,.9)}}
+
+/* Flag badges on freq tiles */
+.ft-flag{
+  font-size:8px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  padding:2px 7px;border-radius:3px;margin-left:6px;
+}
+.ft-flag.healthy{background:rgba(74,222,128,.15);color:#4ade80;border:1px solid rgba(74,222,128,.3)}
+.ft-flag.warning{background:rgba(251,191,36,.15);color:#fbbf24;border:1px solid rgba(251,191,36,.3)}
+.ft-flag.fault  {background:rgba(239,68,68,.15); color:#f87171;border:1px solid rgba(239,68,68,.3)}
+
 
 /* ── SECTION LABEL ── */
 .sec-label{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);padding:0 2px}
@@ -116,6 +140,21 @@ body{
 .stat-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
 .stat-val{font-family:var(--head);font-size:17px;font-weight:700;margin-top:1px}
 
+
+.fault-banner{
+  display:none;align-items:center;gap:12px;padding:11px 18px;
+  background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.4);
+  border-left:3px solid #ef4444;border-radius:6px;font-size:12px;color:#fca5a5;
+}
+.fault-banner.show{display:flex}
+.fault-banner-icon{font-size:15px}
+@keyframes pb{0%{border-left-color:rgba(239,68,68,.3)}100%{border-left-color:#ef4444}}
+.fault-banner.show{animation:pb .8s ease infinite alternate}
+.ft-flag{font-size:8px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  padding:2px 6px;border-radius:3px;margin-left:5px}
+.ft-flag.ok  {background:rgba(74,222,128,.12);color:#4ade80;border:1px solid rgba(74,222,128,.3)}
+.ft-flag.warn{background:rgba(251,191,36,.12);color:#fbbf24;border:1px solid rgba(251,191,36,.3)}
+.ft-flag.crit{background:rgba(239,68,68,.12); color:#f87171;border:1px solid rgba(239,68,68,.3)}
 .footer{text-align:center;font-size:9px;color:var(--dim);letter-spacing:.12em;text-transform:uppercase}
 
 @media(max-width:960px){.wave-grid,.freq-strip{grid-template-columns:1fr 1fr}.stats-bar{grid-template-columns:repeat(2,1fr)}}
@@ -134,15 +173,25 @@ body{
     <div class="pill"><div class="dot" id="connDot"></div><span id="connTxt">Connecting…</span></div>
   </div>
 
+
+  <!-- FAULT BANNER -->
+  <div class="fault-banner" id="faultBanner">
+    <span class="fault-banner-icon">⚠</span>
+    <span id="faultMsg">Fault detected</span>
+  </div>
   <!-- ════════════════════════════════════════════
        FREQUENCY SECTION
        ════════════════════════════════════════════ -->
+  <div class="fault-banner" id="faultBanner">
+    <span class="fault-banner-icon">⚠</span>
+    <span id="faultMsg">Fault detected</span>
+  </div>
   <div class="sec-label">▸ Measured Frequency</div>
   <div class="freq-strip">
 
     <div class="freq-tile">
       <div class="ft-top">
-        <span class="ft-name">Ch 1 · wave_out</span>
+        <span class="ft-name">Ch 1 · wave_out</span><span class="ft-flag ok" id="flag0">OK</span>
         <div class="ft-meta">
           <span class="ft-pin">pin 22</span>
           <span class="ft-type" style="color:var(--c0);border-color:rgba(34,211,238,.3)">analog</span>
@@ -157,7 +206,7 @@ body{
 
     <div class="freq-tile">
       <div class="ft-top">
-        <span class="ft-name">Ch 2 · wave_100k</span>
+        <span class="ft-name">Ch 2 · wave_100k</span><span class="ft-flag ok" id="flag1">OK</span>
         <div class="ft-meta">
           <span class="ft-pin">pin 25</span>
           <span class="ft-type" style="color:var(--c1);border-color:rgba(163,230,53,.3)">analog</span>
@@ -172,7 +221,7 @@ body{
 
     <div class="freq-tile">
       <div class="ft-top">
-        <span class="ft-name">Ch 3 · wave_500k</span>
+        <span class="ft-name">Ch 3 · wave_500k</span><span class="ft-flag ok" id="flag2">OK</span>
         <div class="ft-meta">
           <span class="ft-pin">pin 24</span>
           <span class="ft-type" style="color:var(--c2);border-color:rgba(249,115,22,.3)">digital</span>
@@ -187,7 +236,7 @@ body{
 
     <div class="freq-tile">
       <div class="ft-top">
-        <span class="ft-name">Ch 4 · wave_1M</span>
+        <span class="ft-name">Ch 4 · wave_1M</span><span class="ft-flag ok" id="flag3">OK</span>
         <div class="ft-meta">
           <span class="ft-pin">pin 23</span>
           <span class="ft-type" style="color:var(--c3);border-color:rgba(232,121,249,.3)">digital</span>
@@ -410,6 +459,51 @@ async function poll(){
       wfEl.textContent = hasSignal ? full : 'no signal';
     });
 
+
+    // Update fault banner + channel flags
+    const flagData  = data.flags || [0,0,0,0];
+    const faultData = data.fault || 0;
+    const flagNames = ['HEALTHY','WARNING','FAULT'];
+    const flagClass = ['healthy','warning','fault'];
+
+    flagData.forEach((f,i)=>{
+      const el = document.getElementById('flag'+i);
+      if(!el) return;
+      el.textContent  = flagNames[Math.min(f,2)];
+      el.className    = 'ft-flag '+flagClass[Math.min(f,2)];
+    });
+
+    const msg    = document.getElementById('faultMsg');
+    if(faultData){
+      const chNames=['A1','A2','D1','D2'];
+      const badChs = flagData.map((f,i)=>f>0?chNames[i]:null).filter(Boolean);
+      msg.textContent = '⚠ Fault detected on: '+badChs.join(', ')+' — check solder joint';
+      banner.classList.add('show');
+    } else {
+      document.getElementById('faultBanner').classList.remove('show');
+    }
+
+    // ── Flags from Teensy ────────────────────────────────────────────────
+    const flags = data.flags || [0,0,0,0];
+    const fault = data.fault || 0;
+    const flagLabel = ['OK','WARN','FAULT'];
+    const flagCls   = ['ok','warn','crit'];
+    flags.forEach((f,i)=>{
+      const el = document.getElementById('flag'+i);
+      if(!el) return;
+      const idx = Math.min(f,2);
+      el.textContent = flagLabel[idx];
+      el.className   = 'ft-flag ' + flagCls[idx];
+    });
+    if(fault){
+      const banner = document.getElementById('faultBanner');
+      const pinNames = ['pin25','pin22','pin24','pin23'];
+      const bad = flags.map((f,i)=>f>0?`${pinNames[i]}=${flagLabel[Math.min(f,2)]}`:null).filter(Boolean);
+      document.getElementById('faultMsg').textContent = '⚠ Fault: ' + bad.join(' · ');
+      banner.classList.add('show');
+    } else {
+      banner.classList.remove('show');
+    }
     document.getElementById('sPkts').textContent=(data.samples||0).toLocaleString();
     document.getElementById('sLast').textContent=new Date().toLocaleTimeString();
     document.getElementById('sUp').textContent=fmtUp(data.uptime||0);
